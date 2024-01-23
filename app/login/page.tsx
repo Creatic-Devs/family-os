@@ -1,60 +1,81 @@
+'use client'
 import Link from "next/link";
-import { headers, cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { toast } from "sonner";
 
-export default function Login({
-  searchParams,
-}: {
-  searchParams: { message: string };
-}) {
-  const signIn = async (formData: FormData) => {
-    "use server";
+export default function Login() {
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>();
+
+  const signIn = async (formData: FormData) => {        
 
     const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
+    const password = formData.get("password") as string;    
+
+    if(email.length <= 0){
+      setErrorMsg("Ingresa tu correo electrónico.");
+      return;
+    }
+
+    if(password.length <= 0){
+      setErrorMsg("Ingresa tu contraseña.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const supabase = createClientComponentClient();
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
+    setIsLoading(false);
+
     if (error) {
-      return redirect("/login?message=Could not authenticate user");
+      return toast.error("Verifica tus credenciales.");
     }
 
-    return redirect("/");
+    return redirect("/dashboard");
   };
 
-  const signUp = async (formData: FormData) => {
-    "use server";
-
-    const origin = headers().get("origin");
+  const signUp = async (formData: FormData) => {    
+    
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
-
+    const name = formData.get("name") as string;    
+    const supabase = createClientComponentClient();    
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback`,
+        emailRedirectTo: `${location.origin}/auth/callback`,
+        data: {
+          full_name: name,
+        }
       },
     });
 
     if (error) {
-      return redirect("/login?message=Could not authenticate user");
+      console.log(error);
+      return toast.error("Hubo un problema al crear tu cuenta.");
     }
 
-    return redirect("/login?message=Check email to continue sign in process");
+    return toast("Revisa tu correo electrónico para continuar con el proceso de registro.");    
   };
 
   return (
     <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2">
-      <Link
+      {/* <Link
         href="/"
         className="absolute left-8 top-8 py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover flex items-center group text-sm"
       >
@@ -73,45 +94,38 @@ export default function Login({
           <polyline points="15 18 9 12 15 6" />
         </svg>{" "}
         Back
-      </Link>
+      </Link> */}
+      
 
       <form
         className="animate-in flex-1 flex flex-col w-full justify-center gap-2 text-foreground"
         action={signIn}
-      >
-        <label className="text-md" htmlFor="email">
-          Email
-        </label>
-        <input
-          className="rounded-md px-4 py-2 bg-inherit border mb-6"
-          name="email"
-          placeholder="you@example.com"
-          required
-        />
-        <label className="text-md" htmlFor="password">
-          Password
-        </label>
-        <input
-          className="rounded-md px-4 py-2 bg-inherit border mb-6"
-          type="password"
-          name="password"
-          placeholder="••••••••"
-          required
-        />
-        <button className="bg-green-700 rounded-md px-4 py-2 text-foreground mb-2">
-          Sign In
-        </button>
-        <button
-          formAction={signUp}
-          className="border border-foreground/20 rounded-md px-4 py-2 text-foreground mb-2"
-        >
-          Sign Up
-        </button>
-        {searchParams?.message && (
-          <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center">
-            {searchParams.message}
-          </p>
-        )}
+      >              
+        <h1 className="font-semibold mb-4 text-xl self-center">Family OS</h1>
+        <div className="mb-4">
+          <Label htmlFor="name">Nombre Completo</Label>
+          <Input type="text" id="name" placeholder="Ingresa tu nombre" name="name" />
+        </div>       
+        <div className="mb-4">
+          <Label htmlFor="email">Correo electrónico</Label>
+          <Input type="email" id="email" placeholder="Ingresa tu correo electrónico" name="email" />
+        </div>       
+        <div>
+          <Label htmlFor="password">Contraseña</Label>
+          <Input type="password" id="password" placeholder="Ingresa tu contraseña" name="password" />
+        </div>
+        {errorMsg ? <p className="text-red-500 text-xs">{errorMsg}</p> : null}
+        <Button
+        className="mt-4"
+        disabled={isLoading}>
+          {isLoading ? (
+              <Loader2 className="h-4 w-full animate-spin" />) : null}
+          {isLoading ? "" : "Iniciar sesión"}
+          </Button>
+        <Button 
+        formAction={signUp}
+        variant="secondary"
+        >Registrarme</Button>
       </form>
     </div>
   );

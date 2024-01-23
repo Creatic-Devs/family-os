@@ -1,7 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
-import Link from "next/link";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Button } from "./ui/button";
 
 export default async function AuthButton() {
   const cookieStore = cookies();
@@ -34,7 +35,7 @@ export default async function AuthButton() {
       href="/login"
       className="py-2 px-3 flex rounded-md no-underline bg-btn-background hover:bg-btn-background-hover"
     >
-      Login
+      <Button>Iniciar sesión</Button>
     </Link>
   );
 }
